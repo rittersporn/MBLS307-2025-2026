@@ -1,0 +1,75 @@
+---
+title: "Challenge 1"
+author: "Bernadeta Savicka"
+date: "2026-02-13"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+First, I will load the required libraries.  
+  
+```{r}
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(readr)
+```
+  
+Next, I will load the data.
+  
+```{r}
+proteins <- read.table("Sun-etal-2021-IP-MS-PAD4-vs-YFP.txt", header = TRUE, sep = "\t")
+str(proteins)
+```
+  
+Then, I will make the volcano plot.
+  
+```{r}
+ggplot(data = proteins, aes(x = log2_PAD4_vs_YFP, y = -log10(pval_PAD4_vs_YFP))) + # loads the data
+  geom_point() + # creates the scatter plot
+  geom_hline(yintercept = -log10(0.05), color = "red") + # draws the horizontal red line
+  geom_vline(xintercept = c(-2,2), color = "red") + # draws the vertical red lines
+  geom_text(aes(label = ifelse(log2_PAD4_vs_YFP>10, as.character(Protein.IDs),'')), size =2, vjust = 2) + # adds labels only to the most extreme points
+  labs(title = "Volcano plot PAD4 vs YFP",x = "log2 abundance PAD4 vs YFP", y = "-log10(p-value") +
+  theme_classic()
+
+  ggsave("output/Volcanoplot.png") # saves the plot
+```
+  
+Here, I will make a boxplot for the abundance of a randomly selected protein in two samples (‘PAD4’ and ‘YFP’) from four replicates.
+  
+```{r}
+random = sample(1:nrow(proteins), 1) # index for a random protein
+
+# First, I'll tidy the data to make plotting easier
+rprotein <- proteins[random,] %>% pivot_longer(
+  cols = starts_with("Norm_abundance"),
+  names_to = c("Sample", "Replicate"),
+  names_prefix = "Norm_abundance_",
+  names_sep = "_",
+  values_to = "Abundance"
+) %>% mutate(
+  Replicate = parse_number(Replicate) # changes rep1 to 1, etc.
+)
+
+
+# Now onto plotting
+ggplot(data = rprotein, aes(x = Sample, y = Abundance)) + 
+  geom_boxplot() +
+  geom_jitter() +
+  labs(x = "Sample", y = "Normalized abundance", title = paste0("Normalized abundance of ",rprotein[1,"Protein.IDs"],", log2 ratio ",round(rprotein[1,"log2_PAD4_vs_YFP"],2),", p=",round(rprotein[1,"pval_PAD4_vs_YFP"],6))) +
+  theme(plot.title = (element_text(size = 10))) +
+  theme_classic()
+
+ggsave("output/Boxplot.png") # saves the plot
+
+```
+
+  
+  
+  
+  
